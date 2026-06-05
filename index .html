@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number System Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a28;
+    --border: #2a2a42;
+    --accent-dec: #00e5ff;
+    --accent-hex: #ff6b35;
+    --accent-oct: #a8ff3e;
+    --accent-bin: #ff3eac;
+    --text: #e8e8f0;
+    --text-dim: #6a6a8a;
+    --glow-dec: rgba(0,229,255,0.15);
+    --glow-hex: rgba(255,107,53,0.15);
+    --glow-oct: rgba(168,255,62,0.15);
+    --glow-bin: rgba(255,62,172,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* animated grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.7s ease both;
+  }
+
+  header h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent-dec) 0%, var(--accent-bin) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  header p {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+  }
+
+  /* TAB NAV */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .tab-btn.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* PANELS */
+  .panel { display: none; animation: fadeUp 0.4s ease both; }
+  .panel.active { display: block; }
+
+  /* CONVERTER */
+  .converter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 560px) {
+    .converter-grid { grid-template-columns: 1fr; }
+  }
+
+  .num-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .num-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .num-card.dec::before { background: var(--accent-dec); }
+  .num-card.hex::before { background: var(--accent-hex); }
+  .num-card.oct::before { background: var(--accent-oct); }
+  .num-card.bin::before { background: var(--accent-bin); }
+
+  .num-card:focus-within {
+    border-color: var(--border);
+    box-shadow: 0 0 0 1px var(--border), 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .num-card.dec:focus-within { box-shadow: 0 0 20px var(--glow-dec), 0 4px 16px rgba(0,0,0,0.3); }
+  .num-card.hex:focus-within { box-shadow: 0 0 20px var(--glow-hex), 0 4px 16px rgba(0,0,0,0.3); }
+  .num-card.oct:focus-within { box-shadow: 0 0 20px var(--glow-oct), 0 4px 16px rgba(0,0,0,0.3); }
+  .num-card.bin:focus-within { box-shadow: 0 0 20px var(--glow-bin), 0 4px 16px rgba(0,0,0,0.3); }
+
+  .card-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .num-card.dec .card-label { color: var(--accent-dec); }
+  .num-card.hex .card-label { color: var(--accent-hex); }
+  .num-card.oct .card-label { color: var(--accent-oct); }
+  .num-card.bin .card-label { color: var(--accent-bin); }
+
+  .card-label span.base {
+    background: var(--surface);
+    color: var(--text-dim);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+  }
+
+  .num-card input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .num-card input::placeholder { color: var(--text-dim); opacity: 0.5; }
+  .num-card.dec input:focus { border-color: var(--accent-dec); }
+  .num-card.hex input:focus { border-color: var(--accent-hex); }
+  .num-card.oct input:focus { border-color: var(--accent-oct); }
+  .num-card.bin input:focus { border-color: var(--accent-bin); }
+
+  .error-msg {
+    font-size: 0.72rem;
+    color: #ff5555;
+    margin-top: 6px;
+    min-height: 1em;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .clear-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    grid-column: 1 / -1;
+  }
+
+  .clear-btn:hover {
+    background: var(--card);
+    color: var(--text);
+    border-color: #3a3a52;
+  }
+
+  /* CALCULATOR */
+  .calc-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .calc-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 560px) {
+    .calc-row { grid-template-columns: 1fr; }
+    .calc-op-btn { width: 100%; }
+  }
+
+  .calc-field label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .calc-field input, .calc-field select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    padding: 11px 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .calc-field select { cursor: pointer; }
+  .calc-field input:focus, .calc-field select:focus { border-color: #4a4a6a; }
+
+  .op-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-top: 26px;
+  }
+
+  .op-btn-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .op-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: monospace;
+  }
+
+  .op-btn.active, .op-btn:hover {
+    background: var(--card);
+    color: var(--text);
+    border-color: #4a4a6a;
+  }
+
+  .op-btn.active {
+    border-color: var(--accent-dec);
+    color: var(--accent-dec);
+    box-shadow: 0 0 10px var(--glow-dec);
+  }
+
+  .base-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .base-selector label {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-right: 4px;
+  }
+
+  .base-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .base-pill.active {
+    background: var(--card);
+    color: var(--text);
+    border-color: #4a4a6a;
+  }
+
+  .base-pill[data-base="10"].active { border-color: var(--accent-dec); color: var(--accent-dec); }
+  .base-pill[data-base="16"].active { border-color: var(--accent-hex); color: var(--accent-hex); }
+  .base-pill[data-base="8"].active  { border-color: var(--accent-oct); color: var(--accent-oct); }
+  .base-pill[data-base="2"].active  { border-color: var(--accent-bin); color: var(--accent-bin); }
+
+  .calc-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent-dec), var(--accent-bin));
+    color: #0a0a0f;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-bottom: 20px;
+  }
+
+  .calc-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .calc-btn:active { transform: translateY(0); }
+
+  .calc-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .result-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .result-rows { display: flex; flex-direction: column; gap: 10px; }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 3px solid;
+    gap: 12px;
+  }
+
+  .result-row.dec { border-color: var(--accent-dec); }
+  .result-row.hex { border-color: var(--accent-hex); }
+  .result-row.oct { border-color: var(--accent-oct); }
+  .result-row.bin { border-color: var(--accent-bin); }
+
+  .result-row .lbl {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .result-row .val {
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    word-break: break-all;
+    text-align: right;
+  }
+
+  .result-row.dec .val { color: var(--accent-dec); }
+  .result-row.hex .val { color: var(--accent-hex); }
+  .result-row.oct .val { color: var(--accent-oct); }
+  .result-row.bin .val { color: var(--accent-bin); }
+
+  /* COMPLEMENT */
+  .comp-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .comp-input-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 480px) { .comp-input-row { grid-template-columns: 1fr; } }
+
+  .comp-input-row input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .comp-input-row input:focus { border-color: var(--accent-bin); }
+
+  .comp-btn {
+    padding: 12px 22px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent-bin), #a020f0);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+
+  .comp-btn:hover { opacity: 0.85; }
+
+  .bits-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .bits-pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .bits-pill.active {
+    background: var(--card);
+    border-color: var(--accent-bin);
+    color: var(--accent-bin);
+  }
+
+  .comp-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .comp-section {
+    margin-bottom: 20px;
+  }
+
+  .comp-section:last-child { margin-bottom: 0; }
+
+  .comp-section-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Inter', sans-serif;
+  }
+
+  .comp-section.ones .comp-section-title { color: var(--accent-oct); }
+  .comp-section.twos .comp-section-title { color: var(--accent-bin); }
+
+  .bit-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .bit {
+    width: 32px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .bit.zero { background: var(--card); color: var(--text-dim); border: 1px solid var(--border); }
+  .bit.one { background: rgba(255,62,172,0.15); color: var(--accent-bin); border: 1px solid var(--accent-bin); }
+
+  .comp-values {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .comp-val-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--card);
+    border-radius: 8px;
+    gap: 12px;
+  }
+
+  .comp-val-row .lbl {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .comp-val-row .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent-bin);
+    word-break: break-all;
+    text-align: right;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 40px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+  }
+
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    opacity: 0.6;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.8;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .flash {
+    animation: flashAnim 0.4s ease;
+  }
+  @keyframes flashAnim {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+
+  .section-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  /* ===== ADVANCED SCIENTIFIC CALCULATOR ===== */
+  #panel-scicalc .sci-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  /* Sub-tabs inside sci calc */
+  .sci-tabs { display:flex; background:#080810; border-bottom:1px solid var(--border); }
+  .sci-tab {
+    flex:1; padding:10px 6px; border:none; background:transparent;
+    color:var(--text-dim); font-family:'Inter',sans-serif; font-size:0.78rem;
+    cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s;
+  }
+  .sci-tab.active { color:var(--accent-dec); border-bottom-color:var(--accent-dec); }
+  .sci-tab:hover:not(.active) { color:var(--text); }
+  /* Display */
+  #sci-display {
+    background:#080810; padding:16px 18px 12px; border-bottom:1px solid var(--border);
+  }
+  #sci-hist { font-size:0.7rem; color:var(--text-dim); min-height:1em; text-align:right; margin-bottom:2px; word-break:break-all; }
+  #sci-expr-disp { font-size:0.82rem; color:#7070a0; min-height:1.2em; text-align:right; margin-bottom:4px; word-break:break-all; font-family:'JetBrains Mono',monospace; }
+  #sci-screen { font-size:2rem; font-weight:700; text-align:right; color:var(--text); word-break:break-all; letter-spacing:-0.02em; line-height:1.1; font-family:'JetBrains Mono',monospace; }
+  #sci-mode-row { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; }
+  .sci-mode-btn {
+    padding:3px 9px; border-radius:12px; border:1px solid var(--border);
+    font-size:0.64rem; font-family:'JetBrains Mono',monospace; cursor:pointer;
+    background:var(--surface); color:var(--text-dim); transition:all 0.2s;
+  }
+  .sci-mode-btn.active { background:var(--card); color:var(--accent-dec); border-color:var(--accent-dec); }
+  /* Button grid */
+  .sci-btn-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:1px; background:#0d0d18; }
+  .scb {
+    border:none; padding:12px 3px; font-family:'JetBrains Mono',monospace;
+    font-size:0.75rem; cursor:pointer; transition:filter 0.1s,transform 0.08s;
+    text-align:center; line-height:1.3;
+  }
+  .scb:hover  { filter:brightness(1.35); }
+  .scb:active { transform:scale(0.88); }
+  .scb.num  { background:#1c1c2e; color:#e8e8f8; font-size:0.9rem; }
+  .scb.fn   { background:#12121e; color:var(--accent-oct); }
+  .scb.fn2  { background:#12121e; color:#b090ff; }
+  .scb.fn3  { background:#12121e; color:#60d0c0; }
+  .scb.op   { background:#161628; color:var(--accent-hex); font-size:0.95rem; }
+  .scb.mem  { background:#0e0e1a; color:#60d0c0; font-size:0.7rem; }
+  .scb.del  { background:#180e18; color:#ff6688; }
+  .scb.eq   { background:linear-gradient(160deg,var(--accent-dec),var(--accent-bin)); color:#080810; font-size:1rem; font-weight:800; }
+  .scb.zero { grid-column:span 2; }
+  .scb.span3{ grid-column:span 3; }
+  /* Equation solver */
+  .eq-solver { padding:20px; display:none; flex-direction:column; gap:14px; }
+  .eq-solver.active { display:flex; }
+  .eq-type-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .eq-type-btn {
+    padding:6px 14px; border-radius:20px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-dim); font-family:'Inter',sans-serif;
+    font-size:0.78rem; cursor:pointer; transition:all 0.2s;
+  }
+  .eq-type-btn.active { background:var(--card); border-color:var(--accent-bin); color:var(--accent-bin); }
+  .eq-form { display:flex; flex-direction:column; gap:10px; }
+  .eq-label { font-size:0.72rem; color:var(--text-dim); font-family:'Inter',sans-serif; }
+  .eq-input {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); font-family:'JetBrains Mono',monospace; font-size:1rem;
+    padding:10px 14px; outline:none; width:100%; transition:border-color 0.2s;
+  }
+  .eq-input:focus { border-color:var(--accent-bin); }
+  .eq-hint { font-size:0.7rem; color:var(--text-dim); font-family:'Inter',sans-serif; opacity:0.7; }
+  .eq-solve-btn {
+    padding:12px; border-radius:10px; border:none;
+    background:linear-gradient(135deg,var(--accent-bin),#8030d0);
+    color:#fff; font-family:'Inter',sans-serif; font-weight:700;
+    font-size:0.95rem; cursor:pointer; transition:opacity 0.2s;
+  }
+  .eq-solve-btn:hover { opacity:0.85; }
+  .eq-result {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:16px; display:none;
+  }
+  .eq-result.show { display:block; }
+  .eq-result-title { font-size:0.7rem; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; font-family:'Inter',sans-serif; }
+  .eq-ans { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--card); border-radius:8px; margin-bottom:6px; gap:8px; }
+  .eq-ans .albl { font-size:0.7rem; color:var(--text-dim); font-family:'Inter',sans-serif; }
+  .eq-ans .aval { font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:600; color:var(--accent-bin); word-break:break-all; text-align:right; }
+  .eq-steps { margin-top:12px; font-size:0.75rem; color:#9090b0; font-family:'Inter',sans-serif; line-height:1.8; white-space:pre-wrap; }
+  /* Fraction row */
+  #sci-frac-row {
+    display:none; padding:12px 14px; border-top:1px solid var(--border);
+    background:var(--surface); gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  #sci-frac-row input {
+    flex:1; background:var(--card); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:'JetBrains Mono',monospace; padding:7px 10px; outline:none; font-size:0.9rem;
+  }
+  .sci-frac-ok { padding:7px 14px; border-radius:8px; border:none; background:var(--accent-dec); color:#000; font-weight:700; cursor:pointer; }
+  .sci-frac-cancel { padding:7px 12px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text-dim); cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Number System Calculator</h1>
+    <p>Convert · Arithmetic · Two's Complement · Complement Addition</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('converter')">Convert</button>
+    <button class="tab-btn" onclick="switchTab('calculator')">Arithmetic</button>
+    <button class="tab-btn" onclick="switchTab('complement')">2's Complement</button>
+    <button class="tab-btn" onclick="switchTab('tcadd')">Complement Add</button>
+    <button class="tab-btn" onclick="switchTab('scicalc')">Scientific Calc</button>
+  </div>
+
+  <!-- CONVERTER PANEL -->
+  <div id="panel-converter" class="panel active">
+    <div class="converter-grid">
+
+      <div class="num-card dec">
+        <div class="card-label">Decimal <span class="base">Base 10</span></div>
+        <input type="text" id="in-dec" placeholder="e.g. 255" oninput="convertFrom('dec')" autocomplete="off" spellcheck="false">
+        <div class="error-msg" id="err-dec"></div>
+      </div>
+
+      <div class="num-card hex">
+        <div class="card-label">Hexadecimal <span class="base">Base 16</span></div>
+        <input type="text" id="in-hex" placeholder="e.g. FF" oninput="convertFrom('hex')" autocomplete="off" spellcheck="false">
+        <div class="error-msg" id="err-hex"></div>
+      </div>
+
+      <div class="num-card oct">
+        <div class="card-label">Octal <span class="base">Base 8</span></div>
+        <input type="text" id="in-oct" placeholder="e.g. 377" oninput="convertFrom('oct')" autocomplete="off" spellcheck="false">
+        <div class="error-msg" id="err-oct"></div>
+      </div>
+
+      <div class="num-card bin">
+        <div class="card-label">Binary <span class="base">Base 2</span></div>
+        <input type="text" id="in-bin" placeholder="e.g. 11111111" oninput="convertFrom('bin')" autocomplete="off" spellcheck="false">
+        <div class="error-msg" id="err-bin"></div>
+      </div>
+
+      <button class="clear-btn" onclick="clearConverter()">Clear All</button>
+    </div>
+  </div>
+
+  <!-- CALCULATOR PANEL -->
+  <div id="panel-calculator" class="panel">
+    <div class="calc-wrapper">
+      <div class="section-label">Select input base:</div>
+      <div class="base-selector">
+        <div class="base-pill active" data-base="10" onclick="selectCalcBase(this)">DEC 10</div>
+        <div class="base-pill" data-base="16" onclick="selectCalcBase(this)">HEX 16</div>
+        <div class="base-pill" data-base="8"  onclick="selectCalcBase(this)">OCT 8</div>
+        <div class="base-pill" data-base="2"  onclick="selectCalcBase(this)">BIN 2</div>
+      </div>
+
+      <div class="calc-row">
+        <div class="calc-field">
+          <label>First Number (A)</label>
+          <input type="text" id="calc-a" placeholder="A" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="op-center">
+          <div class="op-btn-group">
+            <button class="op-btn active" data-op="+" onclick="selectOp(this)">+</button>
+            <button class="op-btn" data-op="-" onclick="selectOp(this)">−</button>
+            <button class="op-btn" data-op="*" onclick="selectOp(this)">×</button>
+            <button class="op-btn" data-op="/" onclick="selectOp(this)">÷</button>
+          </div>
+        </div>
+        <div class="calc-field">
+          <label>Second Number (B)</label>
+          <input type="text" id="calc-b" placeholder="B" autocomplete="off" spellcheck="false">
+        </div>
+        <div></div>
+      </div>
+
+      <button class="calc-btn" onclick="calculate()">= Calculate</button>
+
+      <div class="calc-result">
+        <div class="result-title">Result</div>
+        <div id="calc-result-content">
+          <div class="empty-state">
+            <div class="icon">🔢</div>
+            Enter numbers and calculate
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLEMENT PANEL -->
+  <div id="panel-complement" class="panel">
+    <div class="comp-wrapper">
+      <div class="section-label">Enter a decimal or binary number:</div>
+      <div class="comp-input-row">
+        <div>
+          <div class="base-selector" style="margin-bottom:10px">
+            <div class="base-pill active" data-base="10" onclick="selectCompBase(this)">DEC 10</div>
+            <div class="base-pill" data-base="2" onclick="selectCompBase(this)">BIN 2</div>
+          </div>
+          <input type="text" id="comp-input" placeholder="Enter number..." autocomplete="off" spellcheck="false">
+        </div>
+        <button class="comp-btn" onclick="computeComplement()">Calculate</button>
+      </div>
+
+      <div class="section-label">Bit width:</div>
+      <div class="bits-selector">
+        <div class="bits-pill" data-bits="4"  onclick="selectBits(this)">4-bit</div>
+        <div class="bits-pill active" data-bits="8" onclick="selectBits(this)">8-bit</div>
+        <div class="bits-pill" data-bits="16" onclick="selectBits(this)">16-bit</div>
+        <div class="bits-pill" data-bits="32" onclick="selectBits(this)">32-bit</div>
+      </div>
+
+      <div class="comp-result">
+        <div id="comp-result-content">
+          <div class="empty-state">
+            <div class="icon">⚡</div>
+            Enter a number to compute complement
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TWO'S COMPLEMENT ADDITION PANEL -->
+  <div id="panel-tcadd" class="panel">
+    <div class="comp-wrapper">
+
+      <div class="section-label">Select bit width:</div>
+      <div class="bits-selector" id="tcadd-bits-selector">
+        <div class="bits-pill" data-bits="4"  onclick="selectTcBits(this)">4-bit</div>
+        <div class="bits-pill active" data-bits="8" onclick="selectTcBits(this)">8-bit</div>
+        <div class="bits-pill" data-bits="16" onclick="selectTcBits(this)">16-bit</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div>
+          <div class="section-label">First Number A (Decimal)</div>
+          <input type="number" id="tca-input" placeholder="e.g. 25" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:1.1rem;padding:12px 14px;outline:none;" autocomplete="off">
+        </div>
+        <div>
+          <div class="section-label">Second Number B (Decimal)</div>
+          <input type="number" id="tcb-input" placeholder="e.g. -13" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:1.1rem;padding:12px 14px;outline:none;" autocomplete="off">
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="computeTcAdd()" style="background:linear-gradient(135deg,var(--accent-bin),#a020f0);">= Add using Two's Complement</button>
+
+      <div class="comp-result">
+        <div id="tcadd-result">
+          <div class="empty-state">
+            <div class="icon">➕</div>
+            Enter two numbers (negatives allowed)
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCIENTIFIC CALCULATOR PANEL -->
+  <div id="panel-scicalc" class="panel">
+    <div class="sci-wrap">
+
+      <!-- Internal sub-tabs -->
+      <div class="sci-tabs">
+        <button class="sci-tab active" onclick="sciSwitchTab('calc',this)">🔢 Calculator</button>
+        <button class="sci-tab" onclick="sciSwitchTab('eq',this)">📐 Equation Solver</button>
+        <button class="sci-tab" onclick="sciSwitchTab('unit',this)">🔄 Unit Convert</button>
+        <button class="sci-tab" onclick="sciSwitchTab('stat',this)">📊 Statistics</button>
+      </div>
+
+      <!-- ── CALCULATOR TAB ── -->
+      <div id="sci-calc-tab">
+        <div id="sci-display">
+          <div id="sci-hist"></div>
+          <div id="sci-expr-disp"></div>
+          <div id="sci-screen">0</div>
+          <div id="sci-mode-row">
+            <button class="sci-mode-btn active" id="btn-deg"  onclick="sciSetAngle('DEG')">DEG</button>
+            <button class="sci-mode-btn"        id="btn-rad"  onclick="sciSetAngle('RAD')">RAD</button>
+            <button class="sci-mode-btn"        id="btn-grad" onclick="sciSetAngle('GRAD')">GRAD</button>
+            <button class="sci-mode-btn" id="btn-inv" onclick="sciToggleInv()" style="margin-left:auto;color:var(--accent-hex);">INV</button>
+            <button class="sci-mode-btn" id="btn-hyp" onclick="sciToggleHyp()" style="color:#60d0c0;">HYP</button>
+          </div>
+        </div>
+
+        <div class="sci-btn-grid">
+          <!-- Row 1: Memory -->
+          <button class="scb mem" onclick="sciMC()">MC</button>
+          <button class="scb mem" onclick="sciMR()">MR</button>
+          <button class="scb mem" onclick="sciMS()">MS</button>
+          <button class="scb mem" onclick="sciMPlus()">M+</button>
+          <button class="scb mem" onclick="sciMMinus()">M−</button>
+          <button class="scb mem" onclick="sciMSwap()">M↔</button>
+
+          <!-- Row 2: Trig row 1 -->
+          <button class="scb fn" id="scb-sin" onclick="sciApplyTrig('sin')">sin</button>
+          <button class="scb fn" id="scb-cos" onclick="sciApplyTrig('cos')">cos</button>
+          <button class="scb fn" id="scb-tan" onclick="sciApplyTrig('tan')">tan</button>
+          <button class="scb fn2" id="scb-cot" onclick="sciApplyTrig('cot')">cot</button>
+          <button class="scb fn2" id="scb-sec" onclick="sciApplyTrig('sec')">sec</button>
+          <button class="scb fn2" id="scb-csc" onclick="sciApplyTrig('csc')">csc</button>
+
+          <!-- Row 3: Log / Exp -->
+          <button class="scb fn" id="scb-log" onclick="sciApplyFn('log10')">log</button>
+          <button class="scb fn" id="scb-ln"  onclick="sciApplyFn('log')">ln</button>
+          <button class="scb fn2" onclick="sciApplyFn('log2')">log₂</button>
+          <button class="scb fn2" onclick="sciApplyFn2('exp')">eˣ</button>
+          <button class="scb fn2" onclick="sciApplyFn2('10pow')">10ˣ</button>
+          <button class="scb fn2" onclick="sciApplyFn2('2pow')">2ˣ</button>
+
+          <!-- Row 4: Powers / Roots -->
+          <button class="scb fn" onclick="sciSuffix('**2')">x²</button>
+          <button class="scb fn" onclick="sciSuffix('**3')">x³</button>
+          <button class="scb fn" onclick="sciApplyFn('sqrt')">√x</button>
+          <button class="scb fn" onclick="sciApplyFn('cbrt')">∛x</button>
+          <button class="scb fn" onclick="sciOp('**')">xʸ</button>
+          <button class="scb fn" onclick="sciYRoot()">ʸ√x</button>
+
+          <!-- Row 5: Special fns -->
+          <button class="scb fn" onclick="sciApplyFn('fact')">n!</button>
+          <button class="scb fn" onclick="sciApplyFn('abs')">|x|</button>
+          <button class="scb fn" onclick="sciRecip()">1/x</button>
+          <button class="scb fn" onclick="sciSuffix('%')">%</button>
+          <button class="scb fn3" onclick="sciApplyFn('floor')">⌊x⌋</button>
+          <button class="scb fn3" onclick="sciApplyFn('ceil')">⌈x⌉</button>
+
+          <!-- Row 6: More special -->
+          <button class="scb fn2" onclick="sciInputRaw('π')">π</button>
+          <button class="scb fn2" onclick="sciInputRaw('e')">e</button>
+          <button class="scb fn2" onclick="sciInputRaw('φ')">φ</button>
+          <button class="scb fn" onclick="sciInputRaw('(')"> ( </button>
+          <button class="scb fn" onclick="sciInputRaw(')')"> ) </button>
+          <button class="scb fn3" onclick="sciFracOpen()">a/b</button>
+
+          <!-- Row 7: digits + ops row 1 -->
+          <button class="scb num" onclick="sciDigit('7')">7</button>
+          <button class="scb num" onclick="sciDigit('8')">8</button>
+          <button class="scb num" onclick="sciDigit('9')">9</button>
+          <button class="scb del" onclick="sciBackspace()">⌫</button>
+          <button class="scb del" onclick="sciClear()">AC</button>
+          <button class="scb op"  onclick="sciOp('÷')">÷</button>
+
+          <button class="scb num" onclick="sciDigit('4')">4</button>
+          <button class="scb num" onclick="sciDigit('5')">5</button>
+          <button class="scb num" onclick="sciDigit('6')">6</button>
+          <button class="scb fn" onclick="sciNegate()">+/−</button>
+          <button class="scb fn3" onclick="sciApplyFn('round')">rnd</button>
+          <button class="scb op"  onclick="sciOp('×')">×</button>
+
+          <button class="scb num" onclick="sciDigit('1')">1</button>
+          <button class="scb num" onclick="sciDigit('2')">2</button>
+          <button class="scb num" onclick="sciDigit('3')">3</button>
+          <button class="scb fn3" onclick="sciApplyFn('sign')">sgn</button>
+          <button class="scb fn" onclick="sciSuffix('**2'); sciApplyFn('sqrt')">√x²</button>
+          <button class="scb op"  onclick="sciOp('−')">−</button>
+
+          <button class="scb num zero" onclick="sciDigit('0')">0</button>
+          <button class="scb num" onclick="sciDot()">.</button>
+          <button class="scb fn3" onclick="sciSciNot()">EXP</button>
+          <button class="scb fn3" onclick="sciAns()">ANS</button>
+          <button class="scb op"  onclick="sciOp('+')">+</button>
+
+          <button class="scb fn3 span3" onclick="sciApplyFn('rand')">RAND</button>
+          <button class="scb fn3" onclick="sciGcd()">GCD</button>
+          <button class="scb fn3" onclick="sciLcm()">LCM</button>
+          <button class="scb eq"  onclick="sciEquals()">=</button>
+        </div>
+
+        <!-- Fraction row -->
+        <div id="sci-frac-row" style="display:none;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;color:var(--text-dim);width:100%;margin-bottom:6px;font-family:'Inter',sans-serif;">Fraction — Numerator / Denominator:</span>
+          <input id="sci-frac-n" type="number" placeholder="Numerator">
+          <span style="color:var(--text-dim);font-size:1.3rem;padding:0 4px;">/</span>
+          <input id="sci-frac-d" type="number" placeholder="Denominator">
+          <button class="sci-frac-ok" onclick="sciInsertFrac()">OK</button>
+          <button class="sci-frac-cancel" onclick="document.getElementById('sci-frac-row').style.display='none'">✕</button>
+        </div>
+      </div>
+
+      <!-- ── EQUATION SOLVER TAB ── -->
+      <div id="sci-eq-tab" style="display:none;padding:20px;">
+        <div class="eq-type-row" style="margin-bottom:16px;">
+          <button class="eq-type-btn active" data-eqtype="linear" onclick="eqSetType(this)">Linear (ax+b=c)</button>
+          <button class="eq-type-btn" data-eqtype="quadratic" onclick="eqSetType(this)">Quadratic</button>
+          <button class="eq-type-btn" data-eqtype="cubic" onclick="eqSetType(this)">Cubic</button>
+          <button class="eq-type-btn" data-eqtype="system2" onclick="eqSetType(this)">System 2×2</button>
+          <button class="eq-type-btn" data-eqtype="poly" onclick="eqSetType(this)">Polynomial</button>
+          <button class="eq-type-btn" data-eqtype="expr" onclick="eqSetType(this)">Expression x=?</button>
+        </div>
+
+        <!-- Linear -->
+        <div id="eq-linear" class="eq-form">
+          <div class="eq-label">ax + b = c &nbsp;→&nbsp; find x</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div><div class="eq-label">a</div><input class="eq-input" id="eq-lin-a" type="number" placeholder="e.g. 3"></div>
+            <div><div class="eq-label">b</div><input class="eq-input" id="eq-lin-b" type="number" placeholder="e.g. -5"></div>
+            <div><div class="eq-label">c</div><input class="eq-input" id="eq-lin-c" type="number" placeholder="e.g. 7"></div>
+          </div>
+          <div class="eq-hint">Formula: x = (c − b) / a</div>
+        </div>
+
+        <!-- Quadratic -->
+        <div id="eq-quadratic" class="eq-form" style="display:none;">
+          <div class="eq-label">ax² + bx + c = 0 &nbsp;→&nbsp; find x</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div><div class="eq-label">a</div><input class="eq-input" id="eq-qa" type="number" placeholder="a"></div>
+            <div><div class="eq-label">b</div><input class="eq-input" id="eq-qb" type="number" placeholder="b"></div>
+            <div><div class="eq-label">c</div><input class="eq-input" id="eq-qc" type="number" placeholder="c"></div>
+          </div>
+          <div class="eq-hint">Discriminant Δ = b² − 4ac</div>
+        </div>
+
+        <!-- Cubic -->
+        <div id="eq-cubic" class="eq-form" style="display:none;">
+          <div class="eq-label">ax³ + bx² + cx + d = 0 &nbsp;→&nbsp; find x</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+            <div><div class="eq-label">a</div><input class="eq-input" id="eq-ca" type="number" placeholder="a"></div>
+            <div><div class="eq-label">b</div><input class="eq-input" id="eq-cb" type="number" placeholder="b"></div>
+            <div><div class="eq-label">c</div><input class="eq-input" id="eq-cc" type="number" placeholder="c"></div>
+            <div><div class="eq-label">d</div><input class="eq-input" id="eq-cd" type="number" placeholder="d"></div>
+          </div>
+        </div>
+
+        <!-- System 2×2 -->
+        <div id="eq-system2" class="eq-form" style="display:none;">
+          <div class="eq-label">System of 2 equations:</div>
+          <div class="eq-label" style="color:#9090c0;">a₁x + b₁y = c₁</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div><div class="eq-label">a₁</div><input class="eq-input" id="eq-s2a1" type="number" placeholder="a₁"></div>
+            <div><div class="eq-label">b₁</div><input class="eq-input" id="eq-s2b1" type="number" placeholder="b₁"></div>
+            <div><div class="eq-label">c₁</div><input class="eq-input" id="eq-s2c1" type="number" placeholder="c₁"></div>
+          </div>
+          <div class="eq-label" style="color:#9090c0;">a₂x + b₂y = c₂</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div><div class="eq-label">a₂</div><input class="eq-input" id="eq-s2a2" type="number" placeholder="a₂"></div>
+            <div><div class="eq-label">b₂</div><input class="eq-input" id="eq-s2b2" type="number" placeholder="b₂"></div>
+            <div><div class="eq-label">c₂</div><input class="eq-input" id="eq-s2c2" type="number" placeholder="c₂"></div>
+          </div>
+          <div class="eq-hint">Solved using Cramer's Rule (determinants)</div>
+        </div>
+
+        <!-- Polynomial root finder -->
+        <div id="eq-poly" class="eq-form" style="display:none;">
+          <div class="eq-label">Polynomial (degree 1–5, comma-separated coefficients high→low):</div>
+          <input class="eq-input" id="eq-poly-coeffs" placeholder="e.g. 1, -6, 11, -6  for x³-6x²+11x-6=0">
+          <div class="eq-hint">Enter all coefficients from highest degree to constant term</div>
+        </div>
+
+        <!-- Expression evaluator -->
+        <div id="eq-expr" class="eq-form" style="display:none;">
+          <div class="eq-label">Enter an expression with <strong style="color:var(--accent-bin);">x</strong> and a value for x:</div>
+          <input class="eq-input" id="eq-expr-input" placeholder="e.g. sin(x)^2 + cos(x)^2">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div><div class="eq-label">x =</div><input class="eq-input" id="eq-expr-x" type="number" placeholder="value of x"></div>
+            <div><div class="eq-label">Angle mode applies to trig</div><div style="color:var(--text-dim);font-size:0.75rem;padding-top:10px;" id="eq-angle-note">Currently: DEG</div></div>
+          </div>
+          <div class="eq-hint">Supports: sin, cos, tan, log, ln, sqrt, abs, pi, e, ^, %, !</div>
+        </div>
+
+        <button class="eq-solve-btn" onclick="eqSolve()">Solve →</button>
+
+        <div class="eq-result" id="eq-result-box">
+          <div class="eq-result-title">Solution</div>
+          <div id="eq-result-content"></div>
+          <div class="eq-steps" id="eq-steps"></div>
+        </div>
+      </div>
+
+      <!-- ── UNIT CONVERTER TAB ── -->
+      <div id="sci-unit-tab" style="display:none;padding:20px;">
+        <div style="margin-bottom:12px;">
+          <div class="eq-label" style="margin-bottom:6px;">Category</div>
+          <select id="unit-cat" onchange="unitCatChange()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;padding:10px 12px;outline:none;font-size:0.9rem;">
+            <option value="length">Length</option>
+            <option value="mass">Mass / Weight</option>
+            <option value="temp">Temperature</option>
+            <option value="area">Area</option>
+            <option value="volume">Volume</option>
+            <option value="speed">Speed</option>
+            <option value="time">Time</option>
+            <option value="energy">Energy</option>
+            <option value="pressure">Pressure</option>
+            <option value="angle">Angle</option>
+            <option value="data">Data Storage</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;margin-bottom:12px;">
+          <div>
+            <div class="eq-label" style="margin-bottom:4px;">From</div>
+            <select id="unit-from" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;padding:9px 10px;outline:none;font-size:0.85rem;margin-bottom:6px;"></select>
+            <input id="unit-val" type="number" value="1" class="eq-input" placeholder="Value">
+          </div>
+          <button onclick="unitSwap()" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:1rem;margin-bottom:6px;">⇄</button>
+          <div>
+            <div class="eq-label" style="margin-bottom:4px;">To</div>
+            <select id="unit-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;padding:9px 10px;outline:none;font-size:0.85rem;margin-bottom:6px;"></select>
+            <div id="unit-result" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--accent-dec);min-height:40px;">—</div>
+          </div>
+        </div>
+        <button class="eq-solve-btn" onclick="unitConvert()" style="background:linear-gradient(135deg,var(--accent-dec),#0090c0);">Convert →</button>
+      </div>
+
+      <!-- ── STATISTICS TAB ── -->
+      <div id="sci-stat-tab" style="display:none;padding:20px;">
+        <div class="eq-label" style="margin-bottom:6px;">Enter numbers (comma-separated):</div>
+        <textarea id="stat-data" class="eq-input" rows="3" placeholder="e.g. 4, 8, 15, 16, 23, 42" style="resize:vertical;font-size:0.9rem;"></textarea>
+        <button class="eq-solve-btn" onclick="statCalc()" style="background:linear-gradient(135deg,#a8ff3e,#40c060);color:#080810;margin-top:10px;">Calculate Statistics →</button>
+        <div id="stat-result" style="display:none;margin-top:14px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    by Abdullah Al Fahim<br>
+    Jalalabad Cantonment Public School &amp; College
+  </footer>
+</div>
+
+<script>
+// ====== STATE ======
+let calcBase = 10;
+let calcOp = '+';
+let compBase = 10;
+let compBits = 8;
+let tcBits = 8;
+
+// ====== TABS ======
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ====== CONVERTER ======
+const validChars = { dec: /^-?\d*$/, hex: /^-?[0-9a-fA-F]*$/, oct: /^-?[0-7]*$/, bin: /^-?[01]*$/ };
+const baseMap    = { dec: 10, hex: 16, oct: 8, bin: 2 };
+const names      = { dec: 'Decimal', hex: 'Hexadecimal', oct: 'Octal', bin: 'Binary' };
+const errMsgs    = { dec: 'Digits 0-9 only', hex: 'Digits 0-9 and A-F only', oct: 'Digits 0-7 only', bin: '0 and 1 only' };
+
+function convertFrom(src) {
+  const input = document.getElementById('in-' + src);
+  const raw = input.value.trim();
+  const errEl = document.getElementById('err-' + src);
+
+  // clear all
+  ['dec','hex','oct','bin'].forEach(k => {
+    if (k !== src) { document.getElementById('in-' + k).value = ''; document.getElementById('err-' + k).textContent = ''; }
+  });
+  errEl.textContent = '';
+
+  if (!raw || raw === '-') return;
+
+  if (!validChars[src].test(raw)) {
+    errEl.textContent = '⚠ ' + errMsgs[src];
+    return;
+  }
+
+  let negative = raw.startsWith('-');
+  let absStr = negative ? raw.slice(1) : raw;
+  if (!absStr) return;
+
+  let decimal;
+  try {
+    decimal = parseInt(absStr, baseMap[src]);
+    if (isNaN(decimal)) { errEl.textContent = '⚠ Invalid number'; return; }
+    if (negative) decimal = -decimal;
+  } catch (e) { errEl.textContent = '⚠ Invalid number'; return; }
+
+  const targets = { dec: 10, hex: 16, oct: 8, bin: 2 };
+  for (const [k, base] of Object.entries(targets)) {
+    if (k === src) continue;
+    const el = document.getElementById('in-' + k);
+    const absVal = Math.abs(decimal).toString(base).toUpperCase();
+    el.value = (decimal < 0 ? '-' : '') + absVal;
+    el.classList.add('flash');
+    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+  }
+}
+
+function clearConverter() {
+  ['dec','hex','oct','bin'].forEach(k => {
+    document.getElementById('in-' + k).value = '';
+    document.getElementById('err-' + k).textContent = '';
+  });
+}
+
+// ====== CALCULATOR ======
+function selectCalcBase(el) {
+  document.querySelectorAll('#panel-calculator .base-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  calcBase = parseInt(el.dataset.base);
+  document.getElementById('calc-a').placeholder = calcBase === 2 ? '1010' : calcBase === 8 ? '377' : calcBase === 16 ? 'FF' : '255';
+  document.getElementById('calc-b').placeholder = calcBase === 2 ? '0101' : calcBase === 8 ? '10' : calcBase === 16 ? '0A' : '10';
+}
+
+function selectOp(el) {
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  calcOp = el.dataset.op;
+}
+
+function calculate() {
+  const aRaw = document.getElementById('calc-a').value.trim().toUpperCase();
+  const bRaw = document.getElementById('calc-b').value.trim().toUpperCase();
+  const res = document.getElementById('calc-result-content');
+
+  if (!aRaw || !bRaw) {
+    res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Please enter both numbers</div>';
+    return;
+  }
+
+  const a = parseInt(aRaw, calcBase);
+  const b = parseInt(bRaw, calcBase);
+
+  if (isNaN(a) || isNaN(b)) {
+    res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Invalid number! Enter digits valid for the selected base.</div>';
+    return;
+  }
+
+  let result;
+  let opSymbol = calcOp;
+  if (calcOp === '+') result = a + b;
+  else if (calcOp === '-') result = a - b;
+  else if (calcOp === '*') { result = a * b; opSymbol = '×'; }
+  else if (calcOp === '/') {
+    if (b === 0) { res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Cannot divide by zero!</div>'; return; }
+    result = Math.floor(a / b);
+    opSymbol = '÷ (remainder: ' + (((a % b) + Math.abs(b)) % Math.abs(b)) + ')';
+  }
+
+  const negative = result < 0;
+  const absResult = Math.abs(result);
+
+  const baseNames = { 10: 'Decimal', 16: 'Hexadecimal', 8: 'Octal', 2: 'Binary' };
+  const opInput = `${aRaw} (${baseNames[calcBase]}) ${calcOp} ${bRaw} (${baseNames[calcBase]})`;
+
+  res.innerHTML = `
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;font-family:'Tiro Bangla',serif;">
+      ${opInput} = <strong style="color:var(--text)">${result}</strong>
+    </div>
+    <div class="result-rows">
+      <div class="result-row dec">
+        <span class="lbl">Decimal</span>
+        <span class="val">${negative ? '-' : ''}${absResult.toString(10)}</span>
+      </div>
+      <div class="result-row hex">
+        <span class="lbl">Hexadecimal</span>
+        <span class="val">${negative ? '-' : ''}${absResult.toString(16).toUpperCase()}</span>
+      </div>
+      <div class="result-row oct">
+        <span class="lbl">Octal</span>
+        <span class="val">${negative ? '-' : ''}${absResult.toString(8)}</span>
+      </div>
+      <div class="result-row bin">
+        <span class="lbl">Binary</span>
+        <span class="val">${negative ? '-' : ''}${absResult.toString(2)}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ====== COMPLEMENT ======
+function selectCompBase(el) {
+  document.querySelectorAll('#panel-complement .base-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  compBase = parseInt(el.dataset.base);
+  document.getElementById('comp-input').placeholder = compBase === 2 ? 'e.g. 1010' : 'e.g. 10';
+}
+
+function selectBits(el) {
+  document.querySelectorAll('.bits-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  compBits = parseInt(el.dataset.bits);
+}
+
+function renderBits(binStr) {
+  return binStr.split('').map(b =>
+    `<div class="bit ${b === '1' ? 'one' : 'zero'}">${b}</div>`
+  ).join('');
+}
+
+function computeComplement() {
+  const raw = document.getElementById('comp-input').value.trim();
+  const res = document.getElementById('comp-result-content');
+
+  if (!raw) {
+    res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Please enter a number</div>';
+    return;
+  }
+
+  let decimal;
+  if (compBase === 2) {
+    if (!/^[01]+$/.test(raw)) {
+      res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Binary accepts only 0 and 1</div>';
+      return;
+    }
+    decimal = parseInt(raw, 2);
+  } else {
+    if (!/^\d+$/.test(raw)) {
+      res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Decimal accepts digits only</div>';
+      return;
+    }
+    decimal = parseInt(raw, 10);
+  }
+
+  const maxVal = Math.pow(2, compBits) - 1;
+  if (decimal > maxVal) {
+    res.innerHTML = `<div class="empty-state"><div class="icon">⚠</div>Max value for ${compBits}-bit is ${maxVal} (decimal)</div>`;
+    return;
+  }
+
+  // original binary padded
+  const originalBin = decimal.toString(2).padStart(compBits, '0');
+
+  // 1's complement: flip bits
+  const onesArr = originalBin.split('').map(b => b === '0' ? '1' : '0');
+  const onesBin = onesArr.join('');
+  const onesDecimal = parseInt(onesBin, 2);
+
+  // 2's complement: 1's complement + 1
+  let twosDecimal = onesDecimal + 1;
+  let overflow = false;
+  if (twosDecimal > maxVal + 1) { overflow = true; }
+  const twosBin = (twosDecimal & maxVal).toString(2).padStart(compBits, '0');
+  twosDecimal = twosDecimal & maxVal;
+
+  res.innerHTML = `
+    <div style="margin-bottom:20px;padding:12px 14px;background:var(--card);border-radius:10px;font-size:0.85rem;color:var(--text-dim);font-family:'Inter',sans-serif;">
+      Input: <strong style="color:var(--text)">${raw}</strong> (${compBase === 2 ? 'Binary' : 'Decimal'}) =
+      <strong style="color:var(--accent-dec)">${decimal}</strong> (Decimal) — ${compBits}-bit
+    </div>
+
+    <div class="comp-section ones">
+      <div class="comp-section-title">✦ Original Number (Binary)</div>
+      <div class="bit-display">${renderBits(originalBin)}</div>
+      <div class="comp-values">
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-dec)">
+          <span class="lbl">Decimal</span><span class="val" style="color:var(--accent-dec)">${decimal}</span>
+        </div>
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-hex)">
+          <span class="lbl">Hexadecimal</span><span class="val" style="color:var(--accent-hex)">${decimal.toString(16).toUpperCase().padStart(Math.ceil(compBits/4), '0')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="comp-section ones">
+      <div class="comp-section-title">✦ One's Complement</div>
+      <div class="bit-display">${renderBits(onesBin)}</div>
+      <div class="comp-values">
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-oct)">
+          <span class="lbl">Decimal</span><span class="val" style="color:var(--accent-oct)">${onesDecimal}</span>
+        </div>
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-oct)">
+          <span class="lbl">Hexadecimal</span><span class="val" style="color:var(--accent-oct)">${onesDecimal.toString(16).toUpperCase().padStart(Math.ceil(compBits/4), '0')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="comp-section twos">
+      <div class="comp-section-title">✦ Two's Complement${overflow ? ' <span style="color:#ff5555;font-size:0.65rem">[Overflow]</span>' : ''}</div>
+      <div class="bit-display">${renderBits(twosBin)}</div>
+      <div class="comp-values">
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-bin)">
+          <span class="lbl">Decimal</span><span class="val">${twosDecimal}</span>
+        </div>
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-bin)">
+          <span class="lbl">Hexadecimal</span><span class="val">${twosDecimal.toString(16).toUpperCase().padStart(Math.ceil(compBits/4), '0')}</span>
+        </div>
+        <div class="comp-val-row" style="border-left:3px solid var(--accent-bin)">
+          <span class="lbl">Signed meaning</span><span class="val">−${decimal}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ====== TWO'S COMPLEMENT ADDITION ======
+function selectTcBits(el) {
+  document.querySelectorAll('#tcadd-bits-selector .bits-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  tcBits = parseInt(el.dataset.bits);
+}
+
+function computeTcAdd() {
+  const aVal = document.getElementById('tca-input').value.trim();
+  const bVal = document.getElementById('tcb-input').value.trim();
+  const res = document.getElementById('tcadd-result');
+
+  if (aVal === '' || bVal === '') {
+    res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Please enter both numbers</div>';
+    return;
+  }
+
+  const a = parseInt(aVal);
+  const b = parseInt(bVal);
+
+  if (isNaN(a) || isNaN(b)) {
+    res.innerHTML = '<div class="empty-state"><div class="icon">⚠</div>Invalid number!</div>';
+    return;
+  }
+
+  const bits = tcBits;
+  const maxPos = Math.pow(2, bits - 1) - 1;
+  const minNeg = -Math.pow(2, bits - 1);
+
+  if (a > maxPos || a < minNeg || b > maxPos || b < minNeg) {
+    res.innerHTML = `<div class="empty-state"><div class="icon">⚠</div>${bits}-bit signed range: ${minNeg} to ${maxPos}</div>`;
+    return;
+  }
+
+  // Get two's complement binary representation
+  function toTwosComp(n, bits) {
+    if (n >= 0) return n.toString(2).padStart(bits, '0');
+    // negative: 2^bits + n
+    return (Math.pow(2, bits) + n).toString(2).padStart(bits, '0');
+  }
+
+  function binaryAdd(binA, binB, bits) {
+    let carry = 0;
+    let result = '';
+    let carries = new Array(bits + 1).fill(0);
+    for (let i = bits - 1; i >= 0; i--) {
+      const sum = parseInt(binA[i]) + parseInt(binB[i]) + carry;
+      result = (sum % 2).toString() + result;
+      carry = Math.floor(sum / 2);
+      carries[i] = carry;
+    }
+    return { result, finalCarry: carry, carries };
+  }
+
+  const tcA = toTwosComp(a, bits);
+  const tcB = toTwosComp(b, bits);
+  const { result: sumBin, finalCarry, carries } = binaryAdd(tcA, tcB, bits);
+
+  // interpret result as signed
+  const rawSum = parseInt(sumBin, 2);
+  let signedSum;
+  if (sumBin[0] === '1') {
+    signedSum = rawSum - Math.pow(2, bits);
+  } else {
+    signedSum = rawSum;
+  }
+
+  // overflow detection: both same sign but result differs
+  const overflow = (a >= 0 && b >= 0 && signedSum < 0) || (a < 0 && b < 0 && signedSum >= 0);
+
+  // carry row string (skip first carry which is always 0)
+  const carryStr = carries.slice(0, bits).map(c => `<div class="bit ${c===1?'one':'zero'}" style="width:28px;height:28px;font-size:0.8rem;">${c}</div>`).join('');
+
+  const renderB = (s) => s.split('').map(b =>
+    `<div class="bit ${b==='1'?'one':'zero'}" style="width:28px;height:28px;font-size:0.82rem;">${b}</div>`
+  ).join('');
+
+  res.innerHTML = `
+    <div style="margin-bottom:18px;padding:12px 14px;background:var(--card);border-radius:10px;font-size:0.85rem;font-family:'Inter',sans-serif;color:var(--text-dim);">
+      <strong style="color:var(--text)">${a}</strong> + <strong style="color:var(--text)">${b}</strong> =
+      <strong style="color:${overflow?'#ff5555':'var(--accent-dec)'}">${signedSum}</strong>
+      ${overflow ? '<span style="color:#ff5555;margin-left:8px;font-size:0.75rem;">⚠ Overflow!</span>' : ''}
+    </div>
+
+    <div class="comp-section ones" style="margin-bottom:18px;">
+      <div class="comp-section-title" style="color:var(--accent-dec);">✦ Two's Complement of A = ${a} (${bits}-bit)</div>
+      <div class="bit-display">${renderB(tcA)}</div>
+    </div>
+
+    <div class="comp-section ones" style="margin-bottom:18px;">
+      <div class="comp-section-title" style="color:var(--accent-hex);">✦ Two's Complement of B = ${b} (${bits}-bit)</div>
+      <div class="bit-display">${renderB(tcB)}</div>
+    </div>
+
+    <div class="comp-section ones" style="margin-bottom:18px;">
+      <div class="comp-section-title" style="color:var(--text-dim);">✦ Carry Bits</div>
+      <div class="bit-display">${carryStr}</div>
+    </div>
+
+    <div class="comp-section twos" style="margin-bottom:18px;">
+      <div class="comp-section-title">✦ Sum (A + B) in Binary</div>
+      <div class="bit-display">${renderB(sumBin)}</div>
+      ${finalCarry ? `<div style="font-size:0.72rem;color:var(--text-dim);margin-top:8px;font-family:'Inter',sans-serif;">▸ Final carry = <span style="color:#ff5555">1</span> (discarded)</div>` : ''}
+    </div>
+
+    <div class="comp-values">
+      <div class="comp-val-row" style="border-left:3px solid var(--accent-bin)">
+        <span class="lbl">Sum (Decimal)</span>
+        <span class="val" style="color:${overflow?'#ff5555':'var(--accent-bin)'}">${signedSum}${overflow?' (Overflow)':''}</span>
+      </div>
+      <div class="comp-val-row" style="border-left:3px solid var(--accent-hex)">
+        <span class="lbl">Binary</span>
+        <span class="val" style="color:var(--accent-hex);font-size:0.85rem">${sumBin}</span>
+      </div>
+      <div class="comp-val-row" style="border-left:3px solid var(--accent-dec)">
+        <span class="lbl">Hexadecimal</span>
+        <span class="val" style="color:var(--accent-dec)">${rawSum.toString(16).toUpperCase().padStart(Math.ceil(bits/4),'0')}</span>
+      </div>
+      <div class="comp-val-row" style="border-left:3px solid var(--text-dim)">
+        <span class="lbl">True Sum</span>
+        <span class="val" style="color:var(--text)">${a + b}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ====== ADVANCED SCIENTIFIC CALCULATOR ======
+
+// --- Sub-tab switching ---
+function sciSwitchTab(name, btn) {
+  ['calc','eq','unit','stat'].forEach(t => {
+    const el = document.getElementById('sci-'+t+'-tab');
+    if (el) el.style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sci-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'unit') unitCatChange();
+  if (name === 'eq') { const n=document.getElementById('eq-angle-note'); if(n) n.textContent='Currently: '+S.angleMode; }
+}
+
+// --- Calculator State ---
+const S = {
+  display: '0', expr: '', hist: '', pendingOp: null, lastVal: null,
+  justEvaled: false, angleMode: 'DEG', invMode: false, hypMode: false,
+  memory: 0, ans: 0,
+};
+
+function toRad(x) {
+  if (S.angleMode==='DEG')  return x*Math.PI/180;
+  if (S.angleMode==='GRAD') return x*Math.PI/200;
+  return x;
+}
+function fromRad(x) {
+  if (S.angleMode==='DEG')  return x*180/Math.PI;
+  if (S.angleMode==='GRAD') return x*200/Math.PI;
+  return x;
+}
+function fact(n) {
+  n=Math.round(Math.abs(n)); if(n>170) return Infinity;
+  let r=1; for(let i=2;i<=n;i++) r*=i; return r;
+}
+function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){let t=b;b=a%b;a=t;}return a;}
+function fmtNum(n) {
+  if(n===undefined||n===null) return 'Error';
+  if(!isFinite(n)) return isNaN(n)?'Error':(n>0?'∞':'-∞');
+  if(n===0) return '0';
+  const s=parseFloat(n.toPrecision(12));
+  if(Math.abs(s)>=1e13||(Math.abs(s)<1e-9&&s!==0)) return s.toExponential(6);
+  return String(s);
+}
+function sciRefresh() {
+  const sc=document.getElementById('sci-screen');
+  const ex=document.getElementById('sci-expr-disp');
+  const hi=document.getElementById('sci-hist');
+  if(sc) sc.textContent=S.display;
+  if(ex) ex.textContent=S.expr;
+  if(hi) hi.textContent=S.hist;
+}
+
+function sciSetAngle(m) {
+  S.angleMode=m;
+  ['DEG','RAD','GRAD'].forEach(x=>document.getElementById('btn-'+x.toLowerCase()).classList.toggle('active',x===m));
+}
+function sciToggleInv() {
+  S.invMode=!S.invMode; S.hypMode=false;
+  document.getElementById('btn-inv').classList.toggle('active',S.invMode);
+  document.getElementById('btn-hyp').classList.remove('active');
+  _updateTrigLabels();
+}
+function sciToggleHyp() {
+  S.hypMode=!S.hypMode; S.invMode=false;
+  document.getElementById('btn-hyp').classList.toggle('active',S.hypMode);
+  document.getElementById('btn-inv').classList.remove('active');
+  _updateTrigLabels();
+}
+function _updateTrigLabels() {
+  const tbl={
+    normal:['sin','cos','tan','cot','sec','csc'],
+    hyp:['sinh','cosh','tanh','coth','sech','csch'],
+    inv:['sin⁻¹','cos⁻¹','tan⁻¹','cot⁻¹','sec⁻¹','csc⁻¹'],
+    invhyp:['sinh⁻¹','cosh⁻¹','tanh⁻¹','coth⁻¹','sech⁻¹','csch⁻¹'],
+  };
+  const ids=['scb-sin','scb-cos','scb-tan','scb-cot','scb-sec','scb-csc'];
+  const labels=S.hypMode?(S.invMode?tbl.invhyp:tbl.hyp):(S.invMode?tbl.inv:tbl.normal);
+  ids.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=labels[i];});
+}
+
+function sciDigit(d) {
+  if(S.justEvaled){S.expr='';S.justEvaled=false;}
+  S.display=(S.display==='0'||S.display==='Error')?d:S.display+d;
+  sciRefresh();
+}
+function sciDot() {
+  if(S.justEvaled){S.display='0';S.expr='';S.justEvaled=false;}
+  if(!S.display.includes('.')) S.display+='.';
+  sciRefresh();
+}
+function sciNegate() {
+  if(S.display==='0'||S.display==='Error') return;
+  S.display=S.display.startsWith('-')?S.display.slice(1):'-'+S.display;
+  sciRefresh();
+}
+function sciClear() {
+  S.display='0';S.expr='';S.hist='';S.pendingOp=null;S.lastVal=null;S.justEvaled=false;
+  sciRefresh();
+}
+function sciBackspace() {
+  if(S.justEvaled||S.display==='Error'){sciClear();return;}
+  S.display=S.display.length>1?S.display.slice(0,-1):'0';
+  sciRefresh();
+}
+function sciAns(){S.display=fmtNum(S.ans);S.expr='ANS';sciRefresh();}
+function sciSciNot(){const x=parseFloat(S.display);if(!isNaN(x)){S.display=x.toExponential(4);sciRefresh();}}
+
+function sciOp(op) {
+  const cur=parseFloat(S.display);
+  if(S.pendingOp&&!S.justEvaled){
+    const res=_compute(S.lastVal,S.pendingOp,cur);
+    S.hist=fmtNum(S.lastVal)+' '+S.pendingOp+' '+fmtNum(cur)+' =';
+    S.display=fmtNum(res);S.lastVal=res;
+  } else {S.lastVal=cur;}
+  S.pendingOp=op;S.expr=S.display+' '+op;S.display='0';S.justEvaled=false;
+  sciRefresh();
+}
+function _compute(a,op,b) {
+  switch(op){
+    case '+':return a+b;case '−':return a-b;case '×':return a*b;
+    case '÷':return b===0?NaN:a/b;
+    case '**':return Math.pow(a,b);
+    case 'mod':return a%b;
+    case 'gcd':return gcd(a,b);
+    case 'lcm':return Math.abs(a*b)/gcd(a,b);
+  }
+  return b;
+}
+function sciEquals() {
+  const cur=parseFloat(S.display);
+  if(S.pendingOp){
+    const res=_compute(S.lastVal,S.pendingOp,cur);
+    S.hist=fmtNum(S.lastVal)+' '+S.pendingOp+' '+fmtNum(cur)+' =';
+    S.display=fmtNum(res);S.ans=res;S.expr='';S.pendingOp=null;S.justEvaled=true;
+  }
+  sciRefresh();
+}
+
+function sciInputRaw(ch) {
+  S.justEvaled=false;
+  if(ch==='π'){S.display=fmtNum(Math.PI);S.expr='π';}
+  else if(ch==='e'){S.display=fmtNum(Math.E);S.expr='e';}
+  else if(ch==='φ'){S.display=fmtNum((1+Math.sqrt(5))/2);S.expr='φ';}
+  sciRefresh();
+}
+
+function sciApplyFn(fn) {
+  const x=parseFloat(S.display);
+  let result,label=fn;
+  switch(fn){
+    case 'sqrt':result=Math.sqrt(x);label='√';break;
+    case 'cbrt':result=Math.cbrt(x);label='∛';break;
+    case 'log10':result=Math.log10(x);label='log';break;
+    case 'log':result=Math.log(x);label='ln';break;
+    case 'log2':result=Math.log2(x);label='log₂';break;
+    case 'abs':result=Math.abs(x);label='|x|';break;
+    case 'fact':result=fact(x);label='n!';break;
+    case 'sinh':result=Math.sinh(x);label='sinh';break;
+    case 'cosh':result=Math.cosh(x);label='cosh';break;
+    case 'tanh':result=Math.tanh(x);label='tanh';break;
+    case 'floor':result=Math.floor(x);label='⌊⌋';break;
+    case 'ceil':result=Math.ceil(x);label='⌈⌉';break;
+    case 'round':result=Math.round(x);label='rnd';break;
+    case 'sign':result=Math.sign(x);label='sgn';break;
+    case 'rand':result=Math.random();label='rand';break;
+    default:result=x;
+  }
+  S.hist=label+'('+fmtNum(x)+') =';S.display=fmtNum(result);S.expr=label+'('+fmtNum(x)+')';S.ans=result;S.justEvaled=true;
+  sciRefresh();
+}
+function sciApplyFn2(fn) {
+  const x=parseFloat(S.display);
+  let result,label;
+  switch(fn){
+    case 'exp':result=Math.exp(x);label='eˣ';break;
+    case '10pow':result=Math.pow(10,x);label='10ˣ';break;
+    case '2pow':result=Math.pow(2,x);label='2ˣ';break;
+    default:result=x;label=fn;
+  }
+  S.hist=label+'('+fmtNum(x)+') =';S.display=fmtNum(result);S.expr=label+'('+fmtNum(x)+')';S.ans=result;S.justEvaled=true;
+  sciRefresh();
+}
+function sciApplyTrig(fn) {
+  const x=parseFloat(S.display);
+  let result,label;
+  if(S.hypMode&&!S.invMode){
+    const hm={sin:Math.sinh,cos:Math.cosh,tan:Math.tanh,
+              cot:v=>Math.cosh(v)/Math.sinh(v),sec:v=>1/Math.cosh(v),csc:v=>1/Math.sinh(v)};
+    result=hm[fn]?hm[fn](x):NaN;label=fn+'h';
+  } else if(S.invMode&&!S.hypMode){
+    const im={sin:Math.asin,cos:Math.acos,tan:Math.atan,
+              cot:v=>Math.PI/2-Math.atan(v),sec:v=>Math.acos(1/v),csc:v=>Math.asin(1/v)};
+    result=fromRad(im[fn]?im[fn](x):NaN);label=fn+'⁻¹';
+  } else if(S.invMode&&S.hypMode){
+    const ihm={sin:Math.asinh,cos:Math.acosh,tan:Math.atanh,
+               cot:v=>Math.atanh(1/v),sec:v=>Math.acosh(1/v),csc:v=>Math.asinh(1/v)};
+    result=ihm[fn]?ihm[fn](x):NaN;label=fn+'h⁻¹';
+  } else {
+    const r=toRad(x);
+    const tm={sin:Math.sin,cos:Math.cos,tan:Math.tan,
+              cot:v=>Math.cos(v)/Math.sin(v),sec:v=>1/Math.cos(v),csc:v=>1/Math.sin(v)};
+    result=tm[fn]?tm[fn](r):NaN;
+    result=Math.abs(result)<1e-14?0:result;
+    label=fn+(S.angleMode==='DEG'?'°':S.angleMode==='GRAD'?'g':'');
+  }
+  S.hist=label+'('+fmtNum(x)+') =';S.display=fmtNum(result);S.expr=label+'('+fmtNum(x)+')';S.ans=result;S.justEvaled=true;
+  sciRefresh();
+}
+function sciSuffix(suf) {
+  const x=parseFloat(S.display);
+  let result,label;
+  if(suf==='**2'){result=x*x;label='x²';}
+  else if(suf==='**3'){result=x*x*x;label='x³';}
+  else if(suf==='%'){result=x/100;label='%';}
+  else{result=x;label=suf;}
+  S.hist=fmtNum(x)+label+' =';S.display=fmtNum(result);S.expr=fmtNum(x)+label;S.ans=result;S.justEvaled=true;
+  sciRefresh();
+}
+function sciRecip(){
+  const x=parseFloat(S.display);
+  if(x===0){S.display='Error';sciRefresh();return;}
+  const r=1/x;
+  S.hist='1/('+fmtNum(x)+') =';S.display=fmtNum(r);S.expr='1/'+fmtNum(x);S.ans=r;S.justEvaled=true;
+  sciRefresh();
+}
+function sciYRoot(){sciOp('**');S.display='0';S.expr='ʸ√: enter y then =';sciRefresh();}
+function sciGcd(){
+  if(S.pendingOp&&S.lastVal!==null){
+    const a=Math.round(S.lastVal),b=Math.round(parseFloat(S.display));
+    const g=gcd(a,b);
+    S.hist='GCD('+a+','+b+') =';S.display=String(g);S.ans=g;S.justEvaled=true;S.pendingOp=null;sciRefresh();
+  } else {S.lastVal=parseFloat(S.display);S.pendingOp='gcd';S.expr=S.display+' GCD';S.display='0';sciRefresh();}
+}
+function sciLcm(){
+  if(S.pendingOp&&S.lastVal!==null){
+    const a=Math.round(S.lastVal),b=Math.round(parseFloat(S.display));
+    const l=Math.abs(a*b)/gcd(a,b);
+    S.hist='LCM('+a+','+b+') =';S.display=String(l);S.ans=l;S.justEvaled=true;S.pendingOp=null;sciRefresh();
+  } else {S.lastVal=parseFloat(S.display);S.pendingOp='lcm';S.expr=S.display+' LCM';S.display='0';sciRefresh();}
+}
+
+function sciMS(){S.memory=parseFloat(S.display);}
+function sciMR(){S.display=fmtNum(S.memory);sciRefresh();}
+function sciMC(){S.memory=0;}
+function sciMPlus(){S.memory+=parseFloat(S.display);}
+function sciMMinus(){S.memory-=parseFloat(S.display);}
+function sciMSwap(){const t=S.memory;S.memory=parseFloat(S.display);S.display=fmtNum(t);sciRefresh();}
+
+function sciFracOpen(){
+  const r=document.getElementById('sci-frac-row');
+  r.style.display=r.style.display==='none'?'flex':'none';
+  if(r.style.display==='flex'){document.getElementById('sci-frac-n').value='';document.getElementById('sci-frac-d').value='';}
+}
+function sciInsertFrac(){
+  const n=parseFloat(document.getElementById('sci-frac-n').value);
+  const d=parseFloat(document.getElementById('sci-frac-d').value);
+  if(isNaN(n)||isNaN(d)||d===0){S.display='Error';sciRefresh();return;}
+  document.getElementById('sci-frac-row').style.display='none';
+  const r=n/d;S.hist=n+'/'+d+' =';S.display=fmtNum(r);S.expr=n+'/'+d;S.ans=r;S.justEvaled=true;sciRefresh();
+}
+
+// ====== EQUATION SOLVER ======
+let eqType='linear';
+function eqSetType(btn){
+  eqType=btn.dataset.eqtype;
+  document.querySelectorAll('.eq-type-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['linear','quadratic','cubic','system2','poly','expr'].forEach(t=>{
+    const el=document.getElementById('eq-'+t);
+    if(el){el.style.display=t===eqType?'flex':'none';if(t===eqType)el.style.flexDirection='column';}
+  });
+  document.getElementById('eq-result-box').classList.remove('show');
+}
+
+function eqSolve(){
+  const box=document.getElementById('eq-result-box');
+  const content=document.getElementById('eq-result-content');
+  const steps=document.getElementById('eq-steps');
+  box.classList.add('show');content.innerHTML='';steps.textContent='';
+  const fA=(lbl,val,color='var(--accent-bin)')=>
+    `<div class="eq-ans"><span class="albl">${lbl}</span><span class="aval" style="color:${color}">${val}</span></div>`;
+  try{
+    if(eqType==='linear'){
+      const a=parseFloat(document.getElementById('eq-lin-a').value);
+      const b=parseFloat(document.getElementById('eq-lin-b').value);
+      const c=parseFloat(document.getElementById('eq-lin-c').value);
+      if(isNaN(a)||isNaN(b)||isNaN(c))throw 'Enter all values';
+      if(a===0)throw 'a cannot be 0';
+      const x=(c-b)/a;
+      content.innerHTML=fA('x =',fmtNum(x));
+      steps.textContent=`${a}x + ${b} = ${c}\n${a}x = ${c-b}\nx = ${fmtNum(x)}`;
+    }
+    else if(eqType==='quadratic'){
+      const a=parseFloat(document.getElementById('eq-qa').value);
+      const b=parseFloat(document.getElementById('eq-qb').value);
+      const c=parseFloat(document.getElementById('eq-qc').value);
+      if(isNaN(a)||isNaN(b)||isNaN(c))throw 'Enter all values';
+      if(a===0)throw 'a cannot be 0';
+      const D=b*b-4*a*c;
+      let html='',st=`Δ = b²-4ac = ${b}²-4·${a}·${c} = ${fmtNum(D)}\n`;
+      if(D>0){
+        const x1=(-b+Math.sqrt(D))/(2*a),x2=(-b-Math.sqrt(D))/(2*a);
+        html=fA('x₁ =',fmtNum(x1),'var(--accent-dec)')+fA('x₂ =',fmtNum(x2),'var(--accent-oct)');
+        st+=`Two real roots:\nx₁ = ${fmtNum(x1)}\nx₂ = ${fmtNum(x2)}`;
+      } else if(D===0){
+        const x=-b/(2*a);
+        html=fA('x =',fmtNum(x)+' (repeated)','var(--accent-oct)');
+        st+=`One repeated root: x = ${fmtNum(x)}`;
+      } else {
+        const re=-b/(2*a),im=Math.sqrt(-D)/(2*a);
+        html=fA('x₁ =',`${fmtNum(re)} + ${fmtNum(im)}i`,'#c090ff')+fA('x₂ =',`${fmtNum(re)} − ${fmtNum(im)}i`,'#c090ff');
+        st+=`Complex roots:\nx = ${fmtNum(re)} ± ${fmtNum(im)}i`;
+      }
+      content.innerHTML=html;steps.textContent=st;
+    }
+    else if(eqType==='cubic'){
+      const a=parseFloat(document.getElementById('eq-ca').value);
+      const b=parseFloat(document.getElementById('eq-cb').value);
+      const c=parseFloat(document.getElementById('eq-cc').value);
+      const d=parseFloat(document.getElementById('eq-cd').value);
+      if(isNaN(a)||isNaN(b)||isNaN(c)||isNaN(d))throw 'Enter all values';
+      if(a===0)throw 'a cannot be 0';
+      const f=x=>a*x*x*x+b*x*x+c*x+d;
+      const df=x=>3*a*x*x+2*b*x+c;
+      const roots=findRealRoots(f,df);
+      if(roots.length===0)content.innerHTML=fA('Result','No real roots found','#ff6688');
+      else content.innerHTML=roots.map((r,i)=>fA('x'+(i+1)+' =',fmtNum(r),['var(--accent-dec)','var(--accent-oct)','var(--accent-bin)'][i]||'var(--accent-bin)')).join('');
+      steps.textContent=`${a}x³ + ${b}x² + ${c}x + ${d} = 0\nRoots found via Newton-Raphson.`;
+    }
+    else if(eqType==='system2'){
+      const a1=parseFloat(document.getElementById('eq-s2a1').value);
+      const b1=parseFloat(document.getElementById('eq-s2b1').value);
+      const c1=parseFloat(document.getElementById('eq-s2c1').value);
+      const a2=parseFloat(document.getElementById('eq-s2a2').value);
+      const b2=parseFloat(document.getElementById('eq-s2b2').value);
+      const c2=parseFloat(document.getElementById('eq-s2c2').value);
+      if([a1,b1,c1,a2,b2,c2].some(isNaN))throw 'Enter all values';
+      const D=a1*b2-a2*b1;
+      if(D===0){content.innerHTML=fA('Result','No unique solution (Δ=0)','#ff6688');return;}
+      const x=(c1*b2-c2*b1)/D,y=(a1*c2-a2*c1)/D;
+      content.innerHTML=fA('x =',fmtNum(x),'var(--accent-dec)')+fA('y =',fmtNum(y),'var(--accent-oct)');
+      steps.textContent=`Cramer's Rule:\nΔ=${D}\nx=Δx/Δ=${fmtNum(x)}\ny=Δy/Δ=${fmtNum(y)}`;
+    }
+    else if(eqType==='poly'){
+      const raw=document.getElementById('eq-poly-coeffs').value;
+      const coeffs=raw.split(',').map(s=>parseFloat(s.trim()));
+      if(coeffs.some(isNaN)||coeffs.length<2)throw 'Enter valid coefficients';
+      const f=x=>coeffs.reduce((s,c,i)=>s+c*Math.pow(x,coeffs.length-1-i),0);
+      const df=x=>coeffs.slice(0,-1).reduce((s,c,i)=>s+(coeffs.length-1-i)*c*Math.pow(x,coeffs.length-2-i),0);
+      const roots=findRealRoots(f,df);
+      if(roots.length===0)content.innerHTML=fA('Result','No real roots found','#ff6688');
+      else content.innerHTML=roots.map((r,i)=>fA('x'+(i+1)+' =',fmtNum(r))).join('');
+      steps.textContent=`Degree ${coeffs.length-1} polynomial.\nCoefficients: [${coeffs.join(', ')}]`;
+    }
+    else if(eqType==='expr'){
+      const exprRaw=document.getElementById('eq-expr-input').value.trim();
+      const xVal=parseFloat(document.getElementById('eq-expr-x').value);
+      if(!exprRaw)throw 'Enter an expression';
+      if(isNaN(xVal))throw 'Enter a value for x';
+      const result=evalExprWithX(exprRaw,xVal);
+      content.innerHTML=fA('Result (x='+xVal+')',fmtNum(result),'var(--accent-dec)');
+      steps.textContent=`f(x) = ${exprRaw}\nx = ${xVal}\nf(${xVal}) = ${fmtNum(result)}`;
+    }
+  }catch(e){
+    content.innerHTML=`<div class="eq-ans"><span class="albl">Error</span><span class="aval" style="color:#ff6688">${e}</span></div>`;
+  }
+}
+
+function evalExprWithX(expr,xVal){
+  let e=expr
+    .replace(/\bpi\b/gi,'('+Math.PI+')')
+    .replace(/\bπ\b/g,'('+Math.PI+')')
+    .replace(/\be\b/g,'('+Math.E+')')
+    .replace(/\bx\b/g,'('+xVal+')')
+    .replace(/\^/g,'**')
+    .replace(/\bsqrt\b/g,'Math.sqrt')
+    .replace(/\babs\b/g,'Math.abs')
+    .replace(/\blog10\b/g,'Math.log10')
+    .replace(/\blog\b/g,'Math.log10')
+    .replace(/\bln\b/g,'Math.log')
+    .replace(/\bfloor\b/g,'Math.floor')
+    .replace(/\bceil\b/g,'Math.ceil')
+    .replace(/\bround\b/g,'Math.round')
+    .replace(/\bsin\b/g,'__SIN__')
+    .replace(/\bcos\b/g,'__COS__')
+    .replace(/\btan\b/g,'__TAN__');
+  const mf=S.angleMode==='DEG'?'*Math.PI/180':S.angleMode==='GRAD'?'*Math.PI/200':'';
+  e=e.replace(/__SIN__\(([^)]+)\)/g,(_,a)=>`Math.sin((${a})${mf})`)
+     .replace(/__COS__\(([^)]+)\)/g,(_,a)=>`Math.cos((${a})${mf})`)
+     .replace(/__TAN__\(([^)]+)\)/g,(_,a)=>`Math.tan((${a})${mf})`);
+  e=e.replace(/(\d+(\.\d+)?)!/g,(_,n)=>String(fact(parseFloat(n))));
+  return Function('"use strict";return('+e+')')();
+}
+
+function findRealRoots(f,df){
+  const roots=[],seen=new Set();
+  const add=r=>{const key=Math.round(r*1e6);if(!seen.has(key)&&isFinite(r)){seen.add(key);roots.push(r);}};
+  for(let x=-200;x<200;x+=0.2){
+    if(f(x)*f(x+0.2)<=0){
+      let rx=(x+x+0.2)/2;
+      for(let i=0;i<80;i++){const fx=f(rx),dfx=df(rx);if(Math.abs(dfx)<1e-14)break;const nx=rx-fx/dfx;if(Math.abs(nx-rx)<1e-11){rx=nx;break;}rx=nx;}
+      if(Math.abs(f(rx))<1e-6)add(parseFloat(rx.toFixed(10)));
+    }
+  }
+  return roots.sort((a,b)=>a-b);
+}
+
+// ====== UNIT CONVERTER ======
+const unitData={
+  length:{units:['m','km','cm','mm','μm','nm','in','ft','yd','mi','nmi'],
+    toBase:{m:1,km:1e3,cm:0.01,mm:0.001,μm:1e-6,nm:1e-9,in:0.0254,ft:0.3048,yd:0.9144,mi:1609.344,nmi:1852}},
+  mass:{units:['kg','g','mg','μg','lb','oz','ton','tonne','stone','carat'],
+    toBase:{kg:1,g:0.001,mg:1e-6,μg:1e-9,lb:0.453592,oz:0.0283495,ton:907.185,tonne:1000,stone:6.35029,carat:0.0002}},
+  temp:{units:['°C','°F','K','°R'],special:true},
+  area:{units:['m²','km²','cm²','mm²','ha','acre','ft²','in²','yd²','mi²'],
+    toBase:{'m²':1,'km²':1e6,'cm²':1e-4,'mm²':1e-6,ha:10000,acre:4046.86,'ft²':0.092903,'in²':0.000645163,'yd²':0.836127,'mi²':2589988}},
+  volume:{units:['L','mL','m³','cm³','ft³','in³','gal(US)','qt','pt','fl oz','cup'],
+    toBase:{L:1,mL:0.001,'m³':1000,'cm³':0.001,'ft³':28.3168,'in³':0.0163871,'gal(US)':3.78541,qt:0.946353,pt:0.473176,'fl oz':0.0295735,cup:0.236588}},
+  speed:{units:['m/s','km/h','mph','ft/s','knot','mach'],
+    toBase:{'m/s':1,'km/h':0.277778,mph:0.44704,'ft/s':0.3048,knot:0.514444,mach:343}},
+  time:{units:['s','ms','μs','ns','min','h','day','week','month','year'],
+    toBase:{s:1,ms:0.001,μs:1e-6,ns:1e-9,min:60,h:3600,day:86400,week:604800,month:2629800,year:31557600}},
+  energy:{units:['J','kJ','cal','kcal','Wh','kWh','eV','BTU','erg'],
+    toBase:{J:1,kJ:1000,cal:4.184,kcal:4184,Wh:3600,kWh:3600000,eV:1.602e-19,BTU:1055.06,erg:1e-7}},
+  pressure:{units:['Pa','kPa','MPa','bar','atm','psi','mmHg','torr'],
+    toBase:{Pa:1,kPa:1000,MPa:1e6,bar:1e5,atm:101325,psi:6894.76,mmHg:133.322,torr:133.322}},
+  angle:{units:['°','rad','grad','turn','arcmin','arcsec'],
+    toBase:{'°':1,rad:180/Math.PI,grad:0.9,turn:360,arcmin:1/60,arcsec:1/3600}},
+  data:{units:['bit','B','KB','MB','GB','TB','PB','KiB','MiB','GiB','TiB'],
+    toBase:{bit:1,B:8,KB:8000,MB:8e6,GB:8e9,TB:8e12,PB:8e15,KiB:8192,MiB:8388608,GiB:8589934592,TiB:8796093022208}},
+};
+function unitCatChange(){
+  const cat=document.getElementById('unit-cat').value;
+  const d=unitData[cat];if(!d)return;
+  ['unit-from','unit-to'].forEach(id=>{
+    const sel=document.getElementById(id);sel.innerHTML='';
+    d.units.forEach(u=>{const o=document.createElement('option');o.value=o.textContent=u;sel.appendChild(o);});
+  });
+  document.getElementById('unit-to').selectedIndex=Math.min(1,d.units.length-1);
+}
+function unitSwap(){
+  const f=document.getElementById('unit-from'),t=document.getElementById('unit-to');
+  const tmp=f.value;f.value=t.value;t.value=tmp;
+}
+function unitConvert(){
+  const cat=document.getElementById('unit-cat').value;
+  const from=document.getElementById('unit-from').value;
+  const to=document.getElementById('unit-to').value;
+  const val=parseFloat(document.getElementById('unit-val').value);
+  const res=document.getElementById('unit-result');
+  if(isNaN(val)){res.textContent='Enter a number';return;}
+  const d=unitData[cat];let result;
+  if(cat==='temp'){
+    let c;
+    if(from==='°C')c=val;else if(from==='°F')c=(val-32)*5/9;
+    else if(from==='K')c=val-273.15;else if(from==='°R')c=(val-491.67)*5/9;
+    if(to==='°C')result=c;else if(to==='°F')result=c*9/5+32;
+    else if(to==='K')result=c+273.15;else if(to==='°R')result=(c+273.15)*9/5;
+  } else {
+    result=(val*d.toBase[from])/d.toBase[to];
+  }
+  res.textContent=fmtNum(result)+' '+to;
+}
+
+// ====== STATISTICS ======
+function statCalc(){
+  const raw=document.getElementById('stat-data').value;
+  const data=raw.split(/[,\s]+/).map(Number).filter(x=>!isNaN(x));
+  const box=document.getElementById('stat-result');
+  if(data.length===0){box.style.display='block';box.innerHTML='<div style="color:#ff6688;font-size:0.85rem;">No valid numbers found.</div>';return;}
+  const n=data.length;
+  const sum=data.reduce((a,b)=>a+b,0);
+  const mean=sum/n;
+  const sorted=[...data].sort((a,b)=>a-b);
+  const med=n%2===0?(sorted[n/2-1]+sorted[n/2])/2:sorted[Math.floor(n/2)];
+  const variance=data.reduce((s,x)=>s+(x-mean)**2,0)/n;
+  const sampleVar=n>1?data.reduce((s,x)=>s+(x-mean)**2,0)/(n-1):0;
+  const std=Math.sqrt(variance),sampleStd=Math.sqrt(sampleVar);
+  const mn=sorted[0],mx=sorted[n-1],range=mx-mn;
+  const q1=sorted[Math.floor(n/4)],q3=sorted[Math.floor(3*n/4)];
+  const freq={};data.forEach(x=>{freq[x]=(freq[x]||0)+1;});
+  const maxF=Math.max(...Object.values(freq));
+  const modes=Object.keys(freq).filter(k=>freq[k]===maxF).map(Number);
+  const skew=data.reduce((s,x)=>s+((x-mean)/std)**3,0)/n;
+  const kurt=data.reduce((s,x)=>s+((x-mean)/std)**4,0)/n-3;
+  const fR=([l,v])=>`<div class="eq-ans" style="border-left:3px solid var(--accent-dec)"><span class="albl" style="font-family:'Inter',sans-serif;">${l}</span><span class="aval" style="color:var(--accent-dec);font-family:'JetBrains Mono',monospace;">${v}</span></div>`;
+  box.style.display='block';
+  box.innerHTML=`
+    <div style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-family:'Inter',sans-serif;">Statistics (n = ${n})</div>
+    ${[['Count (n)',n],['Sum',fmtNum(sum)],['Mean (μ)',fmtNum(mean)],['Median',fmtNum(med)],
+       ['Mode',modes.join(', ')+(maxF>1?' (f='+maxF+')':' (no repeat)')],
+       ['Min',fmtNum(mn)],['Max',fmtNum(mx)],['Range',fmtNum(range)],
+       ['Q1 (25th)',fmtNum(q1)],['Q3 (75th)',fmtNum(q3)],['IQR',fmtNum(q3-q1)],
+       ['Variance (pop.)',fmtNum(variance)],['Variance (sample)',fmtNum(sampleVar)],
+       ['Std Dev (pop.)',fmtNum(std)],['Std Dev (sample)',fmtNum(sampleStd)],
+       ['Coeff of Var.',fmtNum(std/Math.abs(mean)*100)+'%'],
+       ['Skewness',fmtNum(skew)],['Excess Kurtosis',fmtNum(kurt)],
+       ['Geo. Mean',fmtNum(Math.exp(data.reduce((s,x)=>s+Math.log(Math.abs(x)),0)/n))],
+    ].map(fR).join('')}
+  `;
+}
+
+// ====== KEYBOARD ======
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('panel-calculator').classList.contains('active'))calculate();
+    if(document.getElementById('panel-complement').classList.contains('active'))computeComplement();
+    if(document.getElementById('panel-tcadd').classList.contains('active'))computeTcAdd();
+  }
+  if(!document.getElementById('panel-scicalc').classList.contains('active'))return;
+  const calcTab=document.getElementById('sci-calc-tab');
+  if(!calcTab||calcTab.style.display==='none')return;
+  if(e.key>='0'&&e.key<='9')sciDigit(e.key);
+  else if(e.key==='+')sciOp('+');
+  else if(e.key==='-')sciOp('−');
+  else if(e.key==='*')sciOp('×');
+  else if(e.key==='/'){e.preventDefault();sciOp('÷');}
+  else if(e.key==='.')sciDot();
+  else if(e.key==='Enter'||e.key==='=')sciEquals();
+  else if(e.key==='Backspace')sciBackspace();
+  else if(e.key==='Escape')sciClear();
+  else if(e.key==='%')sciSuffix('%');
+});
+document.addEventListener('DOMContentLoaded',()=>{try{unitCatChange();}catch(e){}});
+</script>
+</body>
+</html>
